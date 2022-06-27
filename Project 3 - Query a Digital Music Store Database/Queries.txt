@@ -1,0 +1,70 @@
+#QUERY1
+SELECT sub1.media_type,
+
+  (SELECT ROUND(ROUND((total_qty * 100), 2) / SUM(quantity), 1)
+   FROM invoiceline) Percentage
+FROM
+  (SELECT m.name media_type,
+          SUM(quantity) AS total_qty
+   FROM mediatype m
+   JOIN track t ON t.mediatypeid = m.mediatypeid
+   JOIN invoiceline il ON il.trackid = t.trackid
+   GROUP BY 1
+   ORDER BY 2 DESC) sub1;
+
+#QUERY2
+SELECT *,
+
+  (SELECT units_sold * 100 / SUM(quantity)
+   FROM invoiceline) percentage
+FROM
+  (SELECT g.name AS genre,
+          COUNT(*) AS units_sold
+   FROM track t
+   JOIN genre g ON t.genreid = g.genreid
+   JOIN invoiceline il ON il.trackid = t.trackid
+   GROUP BY 1
+   ORDER BY 2 DESC) subquerie1
+LIMIT 5;
+
+#QUERY3
+SELECT sub2.Name AS Artist_Name,
+       ROUND(SUM(Total), 2) AS Grand_Total
+FROM
+  (SELECT sub1.Name,
+          sub1.UnitPrice * sub1.Quantity AS Total
+   FROM
+     (SELECT AR.Name,
+             IL.UnitPrice,
+             IL.Quantity
+      FROM ARTIST AR
+      JOIN ALBUM AL ON AR.ArtistId = AL.ArtistId
+      JOIN TRACK T ON AL.AlbumId = T.AlbumId
+      JOIN INVOICELINE IL ON T.TrackId = IL.TrackId
+      ORDER BY 1 DESC) AS sub1) AS sub2
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5;
+
+#QUERY4
+WITH biggets_total_by_sales_agent AS
+  (SELECT e.FirstName Name,
+          e.LastName Surname,
+          STRFTIME('%Y', i.InvoiceDate) AS YEAR,
+          SUM(i.Total) Total_Sales
+   FROM Employee e
+   JOIN Customer c ON e.EmployeeId = c.SupportRepId
+   JOIN Invoice i ON c.CustomerId = i.CustomerId
+   GROUP BY 1,
+            2,
+            3
+   ORDER BY 3,
+            4 DESC)
+SELECT bsa.Name,
+       bsa.Surname,
+       bsa.YEAR,
+       bsa.Total_Sales
+FROM biggets_total_by_sales_agent bsa
+GROUP BY 3
+ORDER BY 3,
+         4 DESC;
